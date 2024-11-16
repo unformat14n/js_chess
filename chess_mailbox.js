@@ -5,6 +5,7 @@ class Board {
         this.history = [];
         this.prevEPTarget = null;
         this.enPassantTarget = null;
+        this.checkmate = false;
     }
 
     #generateBoard() {
@@ -207,6 +208,7 @@ class Board {
         let isEP = false;
         let isCapture = false;
         let isCheck = false;
+        let prevCheckmate = this.checkmate;
 
         let piece = this.getPiece(...start);
         let legal = piece
@@ -245,6 +247,7 @@ class Board {
         } else {
             console.log(this.history);
             console.log(this.enPassantTarget);
+            console.log(this.checkmate);
             console.log(this.prevEPTarget);
             console.log(piece.legalMoves(...start));
             this.printBoard();
@@ -256,6 +259,9 @@ class Board {
         if (this.isCheck(piece.color == WHITE ? BLACK : WHITE)) {
             isCheck = true;
         }
+        if (this.isCheckmate(piece.color == WHITE ? BLACK : WHITE)) {
+            this.checkmate = true;
+        }
 
         this.history.push([
             start,
@@ -264,13 +270,21 @@ class Board {
             endPiece,
             isEP,
             this.prevEPTarget,
+            prevCheckmate,
         ]);
         return [isEP, isCapture, isCheck];
     }
 
     undoMove() {
-        let [start, end, movedPiece, endPiece, isEP, prevEPTarget] =
-            this.history.pop();
+        let [
+            start,
+            end,
+            movedPiece,
+            endPiece,
+            isEP,
+            prevEPTarget,
+            prevCheckmate,
+        ] = this.history.pop();
         let from = this.getIndex(...start);
         let to = this.getIndex(...end);
 
@@ -284,6 +298,7 @@ class Board {
                 movedPiece == "♙" ? "♟" : "♙";
         }
         this.enPassantTarget = prevEPTarget;
+        this.checkmate = prevCheckmate;
 
         return "thumbs up :)";
     }
@@ -357,71 +372,13 @@ class Board {
                 if (!this.isEmpty(i, j)) {
                     let piece = this.getPiece(i, j);
                     if (piece.color == color) {
-                        for (const [dx, dy] of piece.deltas) {
-                            if (
-                                piece instanceof Queen ||
-                                piece instanceof Rook ||
-                                piece instanceof Bishop
-                            ) {
-                                let newr = i + dx;
-                                let newc = j + dy;
-                                while (this.betweenBounds(newr, newc)) {
-                                    if (this.isEmpty(newr, newc)) {
-                                        if (
-                                            this.isSafeMove(
-                                                [i, j],
-                                                [newr, newc],
-                                                color,
-                                            )
-                                        ) {
-                                            return false;
-                                        }
-                                    } else {
-                                        if (
-                                            this.getPiece(newr, newc).color !=
-                                                color &&
-                                            this.isSafeMove(
-                                                [i, j],
-                                                [newr, newc],
-                                                color,
-                                            )
-                                        ) {
-                                            return false;
-                                        } else {
-                                            break;
-                                        }
-                                    }
-                                    newr += dx;
-                                    newc += dy;
-                                }
-                            } else {
-                                let nrow = i + dx;
-                                let ncol = j + dy;
-                                if (this.betweenBounds(nrow, ncol)) {
-                                    if (this.isEmpty(nrow, ncol)) {
-                                        if (
-                                            this.isSafeMove(
-                                                [i, j],
-                                                [nrow, ncol],
-                                                color,
-                                            )
-                                        ) {
-                                            return false;
-                                        }
-                                    } else {
-                                        if (
-                                            this.getPiece(nrow, ncol).color !=
-                                                color &&
-                                            this.isSafeMove(
-                                                [i, j],
-                                                [nrow, ncol],
-                                                color,
-                                            )
-                                        ) {
-                                            return false;
-                                        }
-                                    }
-                                }
+                        const pieceMoves = piece.legalMoves(i, j);
+                        if (pieceMoves.length == 0) {
+                            continue;
+                        }
+                        for (let move of pieceMoves) {
+                            if (this.isSafeMove([i, j], move, color)) {
+                                return false;
                             }
                         }
                     }
@@ -429,6 +386,7 @@ class Board {
             }
         }
 
+        // this.checkmate = color;
         return true;
     }
 
@@ -518,8 +476,8 @@ class Piece {
     }
 
     adNauseum(row, col) {
-        if (this.board.isCheckmate(this.color)) {
-            return true;
+        if (this.board.checkmate) {
+            return [];
         }
         let moves = [];
         for (let [xd, yd] of this.deltas) {
@@ -601,9 +559,6 @@ class Rook extends Piece {
     }
 
     legalMoves(row, col) {
-        if (this.board.isCheckmate(this.color)) {
-            return [];
-        }
         return this.adNauseum(row, col);
     }
 }
@@ -615,9 +570,6 @@ class Queen extends Piece {
     }
 
     legalMoves(row, col) {
-        if (this.board.isCheckmate(this.color)) {
-            return [];
-        }
         return this.adNauseum(row, col);
     }
 }
@@ -629,7 +581,7 @@ class Knight extends Piece {
     }
 
     legalMoves(row, col) {
-        if (this.board.isCheckmate(this.color)) {
+        if (this.board.checkmate) {
             return [];
         }
         let moves = [];
@@ -691,7 +643,7 @@ class Knight extends Piece {
 
 class King extends Piece {
     legalMoves(row, col) {
-        if (this.board.isCheckmate(this.color)) {
+        if (this.board.checkmate) {
             return [];
         }
         let moves = [];
@@ -754,7 +706,7 @@ class Pawn extends Piece {
     }
 
     legalMoves(row, col) {
-        if (this.board.isCheckmate(this.color)) {
+        if (this.board.checkmate) {
             return [];
         }
         let moves = [];
@@ -797,7 +749,7 @@ class Pawn extends Piece {
                         targetPawn instanceof Pawn &&
                         targetPawn.color != this.color
                     ) {
-                        console.log("reaches en passant", row, col);
+                        // console.log("reaches en passant", row, col);
                         // this.board.printBoard();
                         moves.push([nrow, ncol]);
                     }
@@ -927,24 +879,33 @@ function numMoves(color, ply, moveSequence = "", moveHash = {}) {
 // eps_count = 0;
 // captures = 0;
 // checks = 0;
+// totalMoves = 0;
 // console.log(getMovesTilPly(3, game, WHITE), captures, eps_count, checks);
 // eps_count = 0;
 // captures = 0;
 // checks = 0;
-// console.log(getMovesTilPly(4, game, WHITE), captures, eps_count, checks, checkmates);
+// totalMoves = 0;
+// console.log(
+//     getMovesTilPly(4, game, WHITE),
+//     captures,
+//     eps_count,
+//     checks,
+//     checkmates,
+// );
 // eps_count = 0;
-// console.log(getMovesTilPly(5, game, WHITE), captures, eps_count, checks);
+console.log(
+    getMovesTilPly(5, game, WHITE),
+    captures,
+    eps_count,
+    checks,
+    checkmates,
+);
 
-game.makeMove([6, 5], [4, 5]);
-game.printBoard();
-game.makeMove([1, 4], [3, 4]);
-game.printBoard();
-game.makeMove([6, 2], [4, 2]);
-game.printBoard();
-game.makeMove([0, 3], [4, 7]);
-game.printBoard();
-// console.log(game.getPossibleMoves("white"));
-// let b = new Queen("black", game);
-// console.log(b.legalMoves(4, 7));
-console.log(game.isCheckmate("white"));
-// console.log(game.isCheck("white"))
+// game.makeMove([6, 5], [4, 5]);
+// game.printBoard();
+// game.makeMove([1, 4], [3, 4]);
+// game.printBoard();
+// game.makeMove([6, 2], [4, 2]);
+// game.printBoard();
+// game.makeMove([0, 3], [4, 7]);
+// game.printBoard();
