@@ -147,14 +147,15 @@ class Board {
             if (movedP instanceof Pawn && Math.abs(to - from) == 20) {
                 this.prevEPTarget = this.enPassantTarget;
                 this.enPassantTarget = to - movedP.dir;
-            } else if (movedP instanceof Pawn && to == this.enPassantTarget) {
-                let captured = to + (movedP.color == "white" ? 10 : -10);
-                epCapt = true;
-                captP = this.board[captured];
-                this.board[captured] = ".";
-                this.prevEPTarget = this.enPassantTarget;
-                this.enPassantTarget = null;
-            } else {
+            }
+            // else if (movedP instanceof Pawn && to == this.enPassantTarget) {
+            // debugger;
+            // let captured = to + (movedP.color == "white" ? 10 : -10);
+            // epCapt = true;
+            // captP = this.board[captured];
+            // this.board[captured] = ".";
+            // }
+            else {
                 this.prevEPTarget = this.enPassantTarget;
                 this.enPassantTarget = null;
             }
@@ -226,15 +227,19 @@ class Board {
         return safe;
     }
 
-    willCheck(from, to) {
+    _willCheck(from, to) {
         let movedPiece = this.board[from];
         let endPiece = this.board[to];
         let color = "♔♕♖♗♘♙".includes(movedPiece) ? "white" : "black";
+        let oppClr = color == "white" ? "black" : "white";
 
         this.board[to] = this.board[from];
         this.board[from] = ".";
 
-        let isCheck = this.inCheck(color == "white" ? "black" : "white");
+        let isCheck = {
+            check: this.inCheck(oppClr),
+            checkmate: this.inCheckmate(oppClr),
+        };
 
         this.board[from] = movedPiece;
         this.board[to] = endPiece;
@@ -265,7 +270,7 @@ class Board {
         return idx;
     }
 
-    toStandard(from, to) {
+    _toStandard(from, to) {
         const pieces = {
             "♜": "r",
             "♞": "n",
@@ -284,6 +289,10 @@ class Board {
         let p = pieces[this.board[this.getIndex(...from)]];
         let c = "";
         let ch = "";
+        let chInfo = this._willCheck(
+            this.getIndex(...from),
+            this.getIndex(...to),
+        );
         if (captured != ".") {
             if (p == "") {
                 c = String.fromCharCode(97 + from[1]) + "x";
@@ -291,8 +300,11 @@ class Board {
                 c = "x";
             }
         }
-        if (this.willCheck(this.getIndex(...from), this.getIndex(...to))) {
+        if (chInfo.check) {
             ch = "+";
+            if (chInfo.checkmate) {
+                ch = "#";
+            }
         }
         return `${p.toUpperCase()}${c}${String.fromCharCode(97 + to[1])}${
             8 - to[0]
@@ -526,7 +538,8 @@ class Pawn extends Piece {
                     }
                 } else if (
                     this.board.enPassantTarget &&
-                    nidx == this.board.enPassantTarget
+                    nidx == this.board.enPassantTarget &&
+                    !this.board.isEmpty(nidx - this.dir)
                 ) {
                     let target = this.board.getPiece(nidx - this.dir);
                     if (
@@ -540,11 +553,26 @@ class Pawn extends Piece {
                 }
             }
         }
-
         return moves;
     }
 
     isChecking(idx) {
+        for (let d of [(11 * this.dir) / 10, (9 * this.dir) / 10]) {
+            let nidx = idx + d;
+            if (!this.board.outOfBounds(nidx)) {
+                if (!this.board.isEmpty(nidx)) {
+                    let piece = this.board.getPiece(nidx);
+                    if (
+                        piece &&
+                        piece.color != this.color &&
+                        this.board.isSafe(idx, nidx) &&
+                        piece instanceof King
+                    ) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 }
@@ -630,7 +658,16 @@ const getSeqs = (ply, color = "white", seq = "", hash = {}) => {
 //     8 + 347,
 //     "expected",
 // );
-console.log(getSeqs(5));
+console.log(countMovesPly(6), capts, eps, chcks, chmts);
+console.log(
+    119060324,
+    34 + 1576 + 82719 + 2812008,
+    258 + 5248,
+    12 + 469 + 27351 + 809099,
+    8 + 347 + 10828,
+    "expected",
+);
+// console.log(getSeqs(5));
 
 // b.printBoard();
 // b.move([6, 4], [4, 4]);
@@ -638,15 +675,20 @@ console.log(getSeqs(5));
 // b.move([1, 5], [3, 5]);
 // b.printBoard();
 // console.log(b.toStandard([7, 3], [3, 7]));
-// b.move([7, 3], [3, 7]);
+// console.log(b.willCheck(b.getIndex(7, 3), b.getIndex(3, 7)));
+
+// b.move([6, 0], [4, 0]);
+// b.printBoard();
+// b.move([1, 2], [2, 2]);
+// b.printBoard();
+// b.move([4, 0], [3, 0]);
 // b.printBoard();
 // b.move([1, 1], [3, 1]);
 // b.printBoard();
 // console.log(b.enPassantTarget);
-// b.move([3, 0], [2, 1]);
-// b.printBoard();
-// // b.move([4, 1], [5, 2]);
-// // b.printBoard();
+// const p = b.getPiece(b.getIndex(3, 0));
+// console.assert(p.legalMoves(3, 0).includes(b.enPassantTarget));
+
 // b.undo();
 // b.printBoard();
 // // console.log(b.isSafe([1, 4], [2, 4], "black"));
