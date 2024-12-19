@@ -644,28 +644,6 @@ const getSeqs = (ply, color = "white", seq = "", hash = {}) => {
     return hash;
 };
 
-function test1() {
-    b.move([6, 0], [4, 0]);
-    b.printBoard();
-    b.move([0, 1], [2, 0]);
-    b.printBoard();
-    b.move([4, 0], [3, 0]);
-    b.printBoard();
-    b.move([1, 1], [3, 1]);
-    b.printBoard();
-    console.assert(b.enPassantTarget == 42);
-    b.move([3, 0], [2, 1]);
-    b.printBoard();
-    console.assert(b.prevEPTarget == 42);
-    console.assert(b.enPassantTarget == null);
-
-    while (b.history.length > 0) {
-        b.undo();
-    }
-    console.log(b.history);
-}
-
-test1();
 // console.log(countMovesPly(4), capts, chcks, chmts);
 // console.log(197281, 34 + 1576, 12 + 469, 8, "expected");
 // console.log(countMovesPly(5), capts, eps, chcks, chmts);
@@ -677,34 +655,12 @@ test1();
 //     8 + 347,
 //     "expected",
 // );
-console.log(countMovesPly(6), capts, eps, chcks, chmts);
-console.log(
-    119060324,
-    34 + 1576 + 82719 + 2812008,
-    258 + 5248,
-    12 + 469 + 27351 + 809099,
-    8 + 347 + 10828,
-    "expected",
-);
-// console.log(getSeqs(5));
-
-// b.printBoard();
-// b.move([6, 4], [4, 4]);
-// b.printBoard();
-// b.move([1, 5], [3, 5]);
-// b.printBoard();
-// console.log(b.toStandard([7, 3], [3, 7]));
-// console.log(b.willCheck(b.getIndex(7, 3), b.getIndex(3, 7)))
-// b.move([1, 2], [2, 1]);
-// b.printBoard();
-// b.undo();
-// b.printBoard();
-// const p = b.getPiece(b.getIndex(3, 0));
-// console.assert(p.legalMoves(3, 0).includes(b.enPassantTarget));
-
-// b.undo();
-// b.printBoard();
-// // console.log(b.isSafe([1, 4], [2, 4], "black"));
-// console.log(b.inCheck("white"));
-// console.log(b.inCheckmate("white"));
-// console.log(b.enPassantTarget);
+// console.log(countMovesPly(6), capts, eps, chcks, chmts);
+// console.log(
+//     119060324,
+//     34 + 1576 + 82719 + 2812008,
+//     258 + 5248,
+//     12 + 469 + 27351 + 809099,
+//     8 + 347 + 10828,
+//     "expected",
+// );
