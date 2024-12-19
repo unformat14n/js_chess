@@ -144,21 +144,18 @@ class Board {
 
         let valid = movedP.legalMoves(...start).includes(to);
         if (valid) {
-            if (movedP instanceof Pawn && Math.abs(to - from) == 20) {
-                this.prevEPTarget = this.enPassantTarget;
-                this.enPassantTarget = to - movedP.dir;
+            if (movedP instanceof Pawn && to == this.enPassantTarget) {
+                let captured = to + (movedP.color == "white" ? 10 : -10);
+                epCapt = true;
+                captP = this.board[captured];
+                this.board[captured] = ".";
             }
-            // else if (movedP instanceof Pawn && to == this.enPassantTarget) {
-            // debugger;
-            // let captured = to + (movedP.color == "white" ? 10 : -10);
-            // epCapt = true;
-            // captP = this.board[captured];
-            // this.board[captured] = ".";
-            // }
-            else {
-                this.prevEPTarget = this.enPassantTarget;
-                this.enPassantTarget = null;
-            }
+
+            this.prevEPTarget = this.enPassantTarget;
+            this.enPassantTarget =
+                movedP instanceof Pawn && Math.abs(to - from) == 20
+                    ? to - movedP.dir
+                    : null;
 
             this.board[to] = this.board[from];
             this.board[from] = ".";
@@ -632,7 +629,7 @@ const getSeqs = (ply, color = "white", seq = "", hash = {}) => {
     let moves = b.allLegalMoves(color);
     for (const [p, mvs] of Object.entries(moves)) {
         for (let mv of mvs) {
-            let std = b.toStandard(b.getRowCol(p), b.getRowCol(mv));
+            // let std = b.toStandard(b.getRowCol(p), b.getRowCol(mv));
             b.move(b.getRowCol(p), b.getRowCol(mv));
             getSeqs(
                 ply - 1,
@@ -647,6 +644,28 @@ const getSeqs = (ply, color = "white", seq = "", hash = {}) => {
     return hash;
 };
 
+function test1() {
+    b.move([6, 0], [4, 0]);
+    b.printBoard();
+    b.move([0, 1], [2, 0]);
+    b.printBoard();
+    b.move([4, 0], [3, 0]);
+    b.printBoard();
+    b.move([1, 1], [3, 1]);
+    b.printBoard();
+    console.assert(b.enPassantTarget == 42);
+    b.move([3, 0], [2, 1]);
+    b.printBoard();
+    console.assert(b.prevEPTarget == 42);
+    console.assert(b.enPassantTarget == null);
+
+    while (b.history.length > 0) {
+        b.undo();
+    }
+    console.log(b.history);
+}
+
+test1();
 // console.log(countMovesPly(4), capts, chcks, chmts);
 // console.log(197281, 34 + 1576, 12 + 469, 8, "expected");
 // console.log(countMovesPly(5), capts, eps, chcks, chmts);
@@ -675,17 +694,11 @@ console.log(
 // b.move([1, 5], [3, 5]);
 // b.printBoard();
 // console.log(b.toStandard([7, 3], [3, 7]));
-// console.log(b.willCheck(b.getIndex(7, 3), b.getIndex(3, 7)));
-
-// b.move([6, 0], [4, 0]);
+// console.log(b.willCheck(b.getIndex(7, 3), b.getIndex(3, 7)))
+// b.move([1, 2], [2, 1]);
 // b.printBoard();
-// b.move([1, 2], [2, 2]);
+// b.undo();
 // b.printBoard();
-// b.move([4, 0], [3, 0]);
-// b.printBoard();
-// b.move([1, 1], [3, 1]);
-// b.printBoard();
-// console.log(b.enPassantTarget);
 // const p = b.getPiece(b.getIndex(3, 0));
 // console.assert(p.legalMoves(3, 0).includes(b.enPassantTarget));
 
